@@ -348,6 +348,27 @@ img{display:block;max-width:100%}
 }
 
 
+
+/* ═══════════ HUB DA EQUIPE ═══════════ */
+.hub{min-height:100vh;background:linear-gradient(165deg,#3B2E24,#241A14);
+  color:#fff;padding:7vh 6vw calc(6vh + env(safe-area-inset-bottom,0));
+  display:flex;flex-direction:column;align-items:center;text-align:center}
+.hub-brasao{height:76px;margin-bottom:14px;
+  filter:brightness(1.15) drop-shadow(0 0 18px rgba(201,169,97,.35))}
+.hub-sub{font-size:13.5px;color:rgba(255,255,255,.55);margin-bottom:26px}
+.hub-grid{display:flex;flex-direction:column;gap:11px;width:100%;max-width:430px}
+.hub-btn{display:flex;align-items:center;gap:14px;text-decoration:none;
+  padding:15px 17px;border-radius:15px;color:#fff;text-align:left;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.13);
+  transition:transform .12s,background .2s}
+.hub-btn:active{transform:scale(.98);background:rgba(255,255,255,.14)}
+.hub-emo{font-size:24px;flex-shrink:0}
+.hub-txt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.hub-txt b{font-size:15.5px}
+.hub-txt small{font-size:12px;color:rgba(255,255,255,.55)}
+.hub-nota{margin-top:24px;font-size:11.5px;color:rgba(255,255,255,.4);
+  max-width:340px;line-height:1.6}
+
 /* ═══════════ SORTEIO + RIFA ═══════════ */
 .rifa{margin-top:22px;padding:18px 16px;border:1px solid var(--linha);
   border-radius:var(--r);background:#fff;box-shadow:var(--sombra)}
@@ -5045,6 +5066,34 @@ function Livro(){
   );
 }
 
+/* ═════════════ HUB DA EQUIPE (#equipe) ═════════════
+   Um link só para o dia: botões para todas as telas operacionais.
+   Não mostra senhas — cada operador recebe a sua. */
+function Hub(){
+  const T = [
+    ['#noivos', '💍', 'Noivos',   'Painel e confirmações'],
+    ['#dj',     '🎵', 'DJ',       'Fila de pedidos de música'],
+    ['#telao',  '👔', 'Telão',    'Placar da Gravata & Sapatinho'],
+    ['#retro',  '📽️', 'Retrô',    'Fotos antigas do casal (TV)'],
+    ['#mural',  '📸', 'Mural',    'Fotos da festa ao vivo (TV)'],
+    ['#sorteio','🎁', 'Sorteio',  'Sorteio das cestas (TV)'],
+    ['#bandeja','🫶', 'Bandeja',  'Padrinhos lançam os valores'],
+  ];
+  return h('div',{className:'hub'},
+    h('img',{src:BRASAO,alt:'',className:'hub-brasao'}),
+    h('div',{className:'display',style:{fontSize:'26px',marginBottom:'4px'}},
+      'Central da festa'),
+    h('div',{className:'hub-sub'},'Toque na tela que você vai operar'),
+    h('div',{className:'hub-grid'},
+      T.map(([hash,emo,t,d])=>h('a',{key:hash,href:hash,className:'hub-btn'},
+        h('span',{className:'hub-emo'},emo),
+        h('span',{className:'hub-txt'},
+          h('b',null,t),
+          h('small',null,d))))),
+    h('div',{className:'hub-nota'},
+      'As telas com cadeado pedem a senha que os noivos passaram.'));
+}
+
 /* ═════════════ SORTEIO DAS CESTAS (#sorteio) ═════════════
    Para a TV, na hora do sorteio. Senha da festa libera os botões.
    O resultado fica gravado e aparece no app de todos. */
@@ -6549,6 +6598,7 @@ function Raiz(){
   if(rota === '#dj')      return h(DJ);
   if(rota === '#livro')   return h(Livro);
   if(rota === '#sorteio') return h(Sorteio);
+  if(rota === '#equipe')  return h(Hub);
 
   if(!abriu && rota !== '#noivos') return h(Abertura,{onEntrar:()=>{
     try{ localStorage.setItem('jm_abriu','1'); }catch(e){}
