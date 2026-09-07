@@ -347,6 +347,40 @@ img{display:block;max-width:100%}
   .lv-capa{page-break-after:always;padding-top:60mm}
 }
 
+
+/* ═══════════ SORTEIO + RIFA ═══════════ */
+.rifa{margin-top:22px;padding:18px 16px;border:1px solid var(--linha);
+  border-radius:var(--r);background:#fff;box-shadow:var(--sombra)}
+.rifa-meus{display:flex;flex-direction:column;gap:7px;margin-bottom:4px}
+.rifa-linha{display:flex;justify-content:space-between;gap:10px;align-items:baseline;
+  padding:9px 11px;background:var(--papel);border-radius:9px;font-size:12.5px}
+.rifa-l{color:var(--tinta-suave)}
+.rifa-n{font-weight:600;color:var(--oliva)}
+.rifa-result{margin-top:12px;padding:13px 14px;border-radius:11px;
+  background:#FBF3E4;border:1px solid #E8D5AC;font-size:13px;line-height:1.7}
+.rifa-r-t{font-weight:700;color:#7A5C1E;margin-bottom:4px}
+.rifa-r-l{color:#5E4718}
+
+.sorte{min-height:100vh;background:radial-gradient(140% 100% at 50% 0%,#3B2E24,#241A14 62%);
+  color:#fff;padding:5vh 4vw;display:flex;flex-direction:column;align-items:center}
+.sorte-login{justify-content:center;text-align:center}
+.sorte-topo{text-align:center;margin-bottom:4.5vh}
+.sorte-brasao{height:9vh;filter:brightness(1.15) drop-shadow(0 0 2.5vh rgba(201,169,97,.35));
+  margin-bottom:1.4vh}
+.sorte-sub{font-size:1.9vh;color:rgba(255,255,255,.6);margin-top:.8vh}
+.sorte-grid{display:grid;grid-template-columns:1fr 1fr;gap:3vw;width:100%;max-width:1100px}
+@media (max-width:700px){.sorte-grid{grid-template-columns:1fr;gap:16px}}
+.sorte-card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);
+  border-radius:2.4vh;padding:4vh 3vw;text-align:center}
+.sorte-rot{font-size:3vh;font-weight:600}
+.sorte-tot{font-size:1.8vh;color:rgba(255,255,255,.55);margin:.8vh 0 2.5vh}
+.sorte-num{font-size:16vh;font-weight:700;line-height:1;color:var(--ouro);
+  text-shadow:0 0 4vh rgba(201,169,97,.35);font-variant-numeric:tabular-nums}
+.sorte-quem{font-size:2.6vh;margin-top:1.6vh;font-weight:500}
+.sorte-btn{margin-top:3vh;padding:1.8vh 4vw;border-radius:99px;
+  background:var(--ouro);color:#33261E;font-size:2vh;font-weight:700}
+.sorte-btn:disabled{opacity:.45}
+
 /* ═══════════ PEDIDO DE MÚSICA + DJ ═══════════ */
 .pm{margin-top:26px;padding:18px 16px 16px;border:1px solid var(--linha);
   border-radius:var(--r);background:#fff;box-shadow:var(--sombra)}
@@ -4571,6 +4605,21 @@ function SeletorCota({ess,dadas,atual,fechar,confirmar}){
 }
 
 /* ═════════════ A FESTA (convidado paga sozinho) ═════════════ */
+/* Números da sorte da rifa: a cada R$ 50 de um lançamento, um número
+   sequencial do lado (gravata/sapatinho), na ordem em que os valores
+   entraram. Derivado dos dados — nada extra para gravar. */
+function numerosDaSorte(lancs, lado){
+  const doLado = lancs.filter(l=>l.lado===lado)
+    .sort((a,b)=>((a.em?.seconds||0)-(b.em?.seconds||0)) ||
+                 String(a.id||'').localeCompare(String(b.id||'')));
+  const nums=[]; let n=1;
+  for(const l of doLado){
+    const q = Math.floor((l.valor||0)/50);
+    for(let i=0;i<q;i++) nums.push({n:n++, nome:l.nome, escondido:l.escondido, fone:l.fone});
+  }
+  return nums;
+}
+
 function AFesta({eu,aviso}){
   const [lado,setLado] = useState(null);
   const [val,setVal]   = useState(0);
@@ -4579,6 +4628,7 @@ function AFesta({eu,aviso}){
   const [busy,setBusy] = useState(false);
   const [feito,setFeito]= useState(false);
   const [lanc,setLanc] = useState([]);
+  const [sorteio,setSorteio] = useState(null);
   const cv = useRef(null);
 
   const valor = outro ? Math.round(parseFloat(outro.replace(',','.'))||0) : val;
@@ -4586,8 +4636,10 @@ function AFesta({eu,aviso}){
 
   useEffect(()=>{
     const u = onSnapshot(collection(db,C.festa), sn=>
-      setLanc(sn.docs.map(d=>d.data())));
-    return u;
+      setLanc(sn.docs.map(d=>({id:d.id,...d.data()}))));
+    const u2 = onSnapshot(doc(db,C.chamada,'sorteio'), sn=>
+      setSorteio(sn.exists() ? sn.data() : null));
+    return ()=>{u(); u2();};
   },[]);
 
   useEffect(()=>{
@@ -4605,6 +4657,7 @@ function AFesta({eu,aviso}){
       await addDoc(collection(db,C.festa),{
         lado, valor,
         nome: esc ? '' : eu.nome,
+        fone: eu.fone,
         escondido: esc,
         viaApp: true,
         em: serverTimestamp()
@@ -4701,8 +4754,46 @@ function AFesta({eu,aviso}){
             textAlign:'center',marginTop:'12px',lineHeight:1.6,paddingBottom:'30px'}},
             'Pague primeiro. Depois toque no botão e seu valor sobe no telão.'))),
 
+    h(Rifa,{lanc,sorteio,eu}),
     h(PecaMusica,{eu,aviso})
     ));
+}
+
+/* ── card dos números da sorte (rifa das cestas) ── */
+function Rifa({lanc,sorteio,eu}){
+  const meusG = numerosDaSorte(lanc,'noivo').filter(x=>x.fone===eu.fone);
+  const meusS = numerosDaSorte(lanc,'noiva').filter(x=>x.fone===eu.fone);
+  const fmt = a => a.map(x=>String(x.n).padStart(2,'0')).join(', ');
+
+  const ganhador = (r) => !r ? null :
+    r.escondido ? 'Nº '+String(r.n).padStart(2,'0')+' · participante anônimo (procure os noivos)'
+                : 'Nº '+String(r.n).padStart(2,'0')+' · '+r.nome;
+
+  return h('div',{className:'rifa'},
+    h('div',{className:'eyebrow',style:{marginBottom:'8px'}},'Rifa das cestas'),
+    h('div',{className:'display',style:{fontSize:'21px',marginBottom:'6px'}},
+      'Números da sorte'),
+    h('p',{style:{fontSize:'13px',color:'var(--tinta-suave)',lineHeight:1.6,
+      margin:'0 0 12px'}},
+      'A cada ',h('b',{style:{color:'var(--tinta)'}},'R$ 50'),
+      ' que você dá na brincadeira, ganha um número da sorte. ',
+      'Vamos sortear duas cestas: uma entre os números da gravata, outra entre os do sapatinho.'),
+
+    (meusG.length>0 || meusS.length>0) && h('div',{className:'rifa-meus'},
+      meusG.length>0 && h('div',{className:'rifa-linha'},
+        h('span',{className:'rifa-l'},'👔 Seus números (gravata)'),
+        h('span',{className:'rifa-n mono'},fmt(meusG))),
+      meusS.length>0 && h('div',{className:'rifa-linha'},
+        h('span',{className:'rifa-l'},'👠 Seus números (sapatinho)'),
+        h('span',{className:'rifa-n mono'},fmt(meusS)))),
+
+    sorteio && h('div',{className:'rifa-result'},
+      h('div',{className:'rifa-r-t'},'🎉 Resultado do sorteio'),
+      sorteio.gravata && h('div',{className:'rifa-r-l'},
+        '👔 Cesta da gravata: ',h('b',null,ganhador(sorteio.gravata))),
+      sorteio.sapatinho && h('div',{className:'rifa-r-l'},
+        '👠 Cesta do sapatinho: ',h('b',null,ganhador(sorteio.sapatinho))))
+  );
 }
 
 /* ── pedido de música para o DJ (dentro da aba Festa) ── */
@@ -4909,6 +5000,87 @@ function Livro(){
       h('div',{className:'lv-fim-n script'},'Com amor, ',
         CASAMENTO.noiva,' & ',CASAMENTO.noivo))
   );
+}
+
+/* ═════════════ SORTEIO DAS CESTAS (#sorteio) ═════════════
+   Para a TV, na hora do sorteio. Senha da festa libera os botões.
+   O resultado fica gravado e aparece no app de todos. */
+function Sorteio(){
+  const [ok,setOk]     = useState(false);
+  const [senha,setSenha]= useState('');
+  const [lanc,setLanc] = useState([]);
+  const [sort,setSort] = useState(null);
+  const [girando,setGirando] = useState(null);   // 'noivo' | 'noiva'
+  const [numGiro,setNumGiro] = useState(0);
+
+  useEffect(()=>{
+    signInAnonymously(auth).catch(e=>console.error(e));
+    const u1 = onSnapshot(collection(db,C.festa), sn=>
+      setLanc(sn.docs.map(d=>({id:d.id,...d.data()}))));
+    const u2 = onSnapshot(doc(db,C.chamada,'sorteio'), sn=>
+      setSort(sn.exists()?sn.data():null));
+    return ()=>{u1();u2();};
+  },[]);
+
+  const senhaOk = () => {
+    const sn = FESTA.senhas;
+    return [sn.padrinho,sn.madrinha,sn.dj].includes(senha);
+  };
+
+  const sortear = (lado) => {
+    const nums = numerosDaSorte(lanc,lado);
+    if(nums.length===0 || girando) return;
+    setGirando(lado);
+    const t0 = Date.now();
+    const id = setInterval(()=>{
+      setNumGiro(1 + Math.floor(Math.random()*nums.length));
+      if(Date.now()-t0 > 3400){
+        clearInterval(id);
+        const v = nums[Math.floor(Math.random()*nums.length)];
+        const campo = lado==='noivo' ? 'gravata' : 'sapatinho';
+        setDoc(doc(db,C.chamada,'sorteio'),
+          {[campo]:{n:v.n,nome:v.nome||'',escondido:!!v.escondido,em:Date.now()}},
+          {merge:true}).catch(e=>console.error(e));
+        setGirando(null);
+      }
+    }, 75);
+  };
+
+  if(!ok) return h('div',{className:'sorte sorte-login'},
+    h('div',{className:'display',style:{fontSize:'26px',marginBottom:'6px'}},'Sorteio das cestas'),
+    h('p',{style:{fontSize:'14px',opacity:.7,marginBottom:'18px'}},'Digite a senha da festa.'),
+    h('input',{className:'inp dj-inp',type:'password',value:senha,placeholder:'Senha',
+      onChange:e=>setSenha(e.target.value),
+      onKeyDown:e=>{ if(e.key==='Enter' && senhaOk()) setOk(true); }}),
+    h('button',{className:'btn btn-p',style:{marginTop:'12px',maxWidth:'280px'},
+      onClick:()=>{ senhaOk() ? setOk(true) : setSenha(''); }},'Entrar'));
+
+  const painel = (lado, rot, emoji, res) => {
+    const nums = numerosDaSorte(lanc,lado);
+    const aoVivo = girando===lado;
+    return h('div',{className:'sorte-card'},
+      h('div',{className:'sorte-rot'},emoji,' ',rot),
+      h('div',{className:'sorte-tot'},nums.length,' números na disputa'),
+      h('div',{className:'sorte-num mono'},
+        aoVivo ? String(numGiro).padStart(2,'0')
+        : res ? String(res.n).padStart(2,'0') : '––'),
+      res && !aoVivo && h('div',{className:'sorte-quem'},
+        res.escondido ? 'Participante anônimo — procure os noivos'
+                      : res.nome || 'Sem nome'),
+      h('button',{className:'sorte-btn'+(aoVivo?' off':''),
+        disabled:!!girando || nums.length===0,
+        onClick:()=>{ if(res && !confirm('Já foi sorteado. Sortear DE NOVO substitui o resultado. Continuar?')) return; sortear(lado); }},
+        aoVivo ? 'Sorteando…' : res ? 'Sortear de novo' : 'Sortear 🎉'));
+  };
+
+  return h('div',{className:'sorte'},
+    h('div',{className:'sorte-topo'},
+      h('img',{src:BRASAO,alt:'',className:'sorte-brasao'}),
+      h('div',{className:'display',style:{fontSize:'4vh'}},'Sorteio das cestas'),
+      h('div',{className:'sorte-sub'},'Cada R$ 50 na brincadeira valeu um número da sorte')),
+    h('div',{className:'sorte-grid'},
+      painel('noivo','Gravata','👔',sort?.gravata),
+      painel('noiva','Sapatinho','👠',sort?.sapatinho)));
 }
 
 /* ═════════════ DJ — fila de pedidos (#dj) ═════════════ */
@@ -6272,6 +6444,7 @@ function Raiz(){
   if(rota === '#retro')   return h(Mural,{retro:true});
   if(rota === '#dj')      return h(DJ);
   if(rota === '#livro')   return h(Livro);
+  if(rota === '#sorteio') return h(Sorteio);
 
   if(!abriu && rota !== '#noivos') return h(Abertura,{onEntrar:()=>{
     try{ localStorage.setItem('jm_abriu','1'); }catch(e){}
