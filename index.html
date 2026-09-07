@@ -3636,6 +3636,7 @@ const CASAMENTO = {
     "jessikahborba@gmail.com": "15996920554"   // Jessika
   },
   musica: "musica.mp3",   // suba este arquivo no GitHub, junto do index.html
+  livreto: "livreto.pdf", // roteiro da cerimônia — suba junto também
   versiculo: "Nós amamos porque ele nos amou primeiro",
   versiculoRef: "1 João 4:19"
 };
@@ -4291,7 +4292,11 @@ function Casa({eu,setAba,dados,midias,festaOn}){
       // atalhos
       h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'13px',marginBottom:'26px'}},
         h(Atalho,{ic:I.pin,  t:'Como chegar', d:CASAMENTO.local, go:()=>setAba('local')}),
-        h(Atalho,{ic:I.foto, t:'Álbum',       d:midias.length ? midias.length+' momentos' : 'Ainda vazio', go:()=>setAba('foto')})
+        h(Atalho,{ic:I.foto, t:'Álbum',       d:midias.length ? midias.length+' momentos' : 'Ainda vazio', go:()=>setAba('foto')}),
+        h('div',{style:{gridColumn:'1 / -1'}},
+          h(Atalho,{ic:I.chat, t:'Roteiro da cerimônia',
+            d:'O passo a passo do nosso grande dia',
+            go:()=>window.open(CASAMENTO.livreto,'_blank')}))
       ),
 
       // no dia da festa, a aba Local sai do menu — o atalho acima garante o acesso
@@ -6192,6 +6197,10 @@ function Local({admin,setAdmin,pedidos,dados,eu,aviso}){
     h('div',{className:'pad'},
       h('div',{className:'local-arte'},
         h('img',{src:AQUARELA_LOCAL,alt:'Cerimônia no Villa Vezzane',loading:'lazy'})),
+
+      h('a',{href:CASAMENTO.livreto,target:'_blank',rel:'noopener',
+        className:'btn btn-o',style:{textDecoration:'none',marginBottom:'20px'}},
+        h(Ic,{d:I.chat,s:17}),'Roteiro da cerimônia (livreto)'),
 
       h('div',{className:'card',style:{marginBottom:'20px'}},
         h('iframe',{className:'mapa',src:CASAMENTO.mapsEmbed,loading:'lazy',
