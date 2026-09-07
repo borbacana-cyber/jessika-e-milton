@@ -381,6 +381,44 @@ img{display:block;max-width:100%}
   background:var(--ouro);color:#33261E;font-size:2vh;font-weight:700}
 .sorte-btn:disabled{opacity:.45}
 
+/* eliminatória do sorteio */
+.elim{position:fixed;inset:0;z-index:50;overflow:hidden;
+  background:radial-gradient(140% 100% at 50% 0%,#3B2E24,#241A14 62%);
+  display:flex;flex-direction:column;align-items:center;
+  padding:5vh 4vw;animation:fimIn .6s ease}
+.elim-feixe{position:absolute;top:0;bottom:0;width:18vw;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(201,169,97,.22),transparent);
+  animation:varre 1.6s ease-in-out;left:-20vw}
+@keyframes varre{to{left:110vw}}
+.elim-t{font-size:3.4vh;font-weight:600;margin-bottom:.6vh}
+.elim-sub{font-size:2vh;color:rgba(255,255,255,.6);margin-bottom:3.5vh;
+  font-variant-numeric:tabular-nums}
+.elim-grid{display:flex;flex-wrap:wrap;justify-content:center;align-content:center;
+  gap:1.2vh;max-width:92vw;flex:1}
+.ficha{
+  padding:1.1vh 1.5vh;border-radius:1.2vh;text-align:center;min-width:7.5vh;
+  background:rgba(255,255,255,.08);border:1px solid rgba(201,169,97,.35);
+  transition:all .3s;
+}
+.ficha-n{font-size:2.6vh;font-weight:700;color:var(--ouro);line-height:1.1}
+.ficha-q{font-size:1.25vh;color:rgba(255,255,255,.55);text-transform:capitalize;
+  max-width:11vh;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ficha.saindo{animation:queima .95s forwards}
+@keyframes queima{
+  25%{filter:brightness(2.4);border-color:var(--ouro)}
+  100%{opacity:0;transform:scale(.55) rotate(3deg);filter:brightness(0)}
+}
+.elim-grid.campeao{align-items:center}
+.ficha.venceu{
+  animation:coroa .9s cubic-bezier(.34,1.45,.5,1) forwards;
+  background:linear-gradient(150deg,rgba(201,169,97,.3),rgba(201,169,97,.12));
+  border-color:var(--ouro);padding:3vh 5vh;
+}
+.ficha.venceu .ficha-n{font-size:14vh}
+.ficha.venceu .ficha-q{font-size:3vh;max-width:none;color:#fff}
+@keyframes coroa{from{transform:scale(.7)}to{transform:scale(1.15)}}
+
+
 /* ═══════════ PEDIDO DE MÚSICA + DJ ═══════════ */
 .pm{margin-top:26px;padding:18px 16px 16px;border:1px solid var(--linha);
   border-radius:var(--r);background:#fff;box-shadow:var(--sombra)}
@@ -5015,8 +5053,7 @@ function Sorteio(){
   const [senha,setSenha]= useState('');
   const [lanc,setLanc] = useState([]);
   const [sort,setSort] = useState(null);
-  const [girando,setGirando] = useState(null);   // 'noivo' | 'noiva'
-  const [numGiro,setNumGiro] = useState(0);
+  const [girando,setGirando] = useState(null);   // lado em disputa
 
   useEffect(()=>{
     signInAnonymously(auth).catch(e=>console.error(e));
@@ -5032,24 +5069,65 @@ function Sorteio(){
     return [sn.padrinho,sn.madrinha,sn.dj].includes(senha);
   };
 
+  // Eliminatória: todos os números na tela; a cada rodada um feixe de
+  // luz apaga metade, até 5, depois 2, e o campeão. O vencedor é sorteado
+  // AQUI, no clique — as rodadas são o espetáculo.
+  const [elim,setElim] = useState(null);   // {lado,nums,vivos,saindo,vencedor}
+
+  const cadeiaCortes = (n) => {
+    const c=[]; let x=n;
+    while(x>5){ x=Math.max(5,Math.ceil(x/2)); c.push(x); }
+    if(n>2 && c[c.length-1]!==2) c.push(2);
+    c.push(1);
+    return c;
+  };
+
   const sortear = (lado) => {
     const nums = numerosDaSorte(lanc,lado);
-    if(nums.length===0 || girando) return;
+    if(nums.length===0 || girando || elim) return;
+    const vencedor = Math.floor(Math.random()*nums.length);
+    if(nums.length===1){ gravar(lado,nums[0]); return; }
     setGirando(lado);
-    const t0 = Date.now();
-    const id = setInterval(()=>{
-      setNumGiro(1 + Math.floor(Math.random()*nums.length));
-      if(Date.now()-t0 > 3400){
-        clearInterval(id);
-        const v = nums[Math.floor(Math.random()*nums.length)];
-        const campo = lado==='noivo' ? 'gravata' : 'sapatinho';
-        setDoc(doc(db,C.chamada,'sorteio'),
-          {[campo]:{n:v.n,nome:v.nome||'',escondido:!!v.escondido,em:Date.now()}},
-          {merge:true}).catch(e=>console.error(e));
-        setGirando(null);
-      }
-    }, 75);
+    setElim({lado, nums, vivos:nums.map((_,i)=>i), saindo:[],
+             cortes:cadeiaCortes(nums.length), passo:0, vencedor, fim:false});
   };
+
+  const gravar = (lado,v) => {
+    const campo = lado==='noivo' ? 'gravata' : 'sapatinho';
+    setDoc(doc(db,C.chamada,'sorteio'),
+      {[campo]:{n:v.n,nome:v.nome||'',escondido:!!v.escondido,em:Date.now()}},
+      {merge:true}).catch(e=>console.error(e));
+  };
+
+  // motor das rodadas
+  useEffect(()=>{
+    if(!elim || elim.fim) return;
+    if(elim.vivos.length===1){
+      // campeão: segura na tela e grava
+      const t = setTimeout(()=>{
+        gravar(elim.lado, elim.nums[elim.vivos[0]]);
+        setElim(null); setGirando(null);
+      }, 3200);
+      return ()=>clearTimeout(t);
+    }
+    // 1) espera, 2) marca metade como 'saindo' (anima), 3) remove
+    const alvo = elim.cortes[elim.passo];
+    const t1 = setTimeout(()=>{
+      const sobreviventes = elim.vivos.filter(i=>i!==elim.vencedor);
+      // embaralha e corta até restarem (alvo-1) além do vencedor
+      for(let i=sobreviventes.length-1;i>0;i--){
+        const j=Math.floor(Math.random()*(i+1));
+        [sobreviventes[i],sobreviventes[j]]=[sobreviventes[j],sobreviventes[i]];
+      }
+      const ficam = sobreviventes.slice(0, alvo-1).concat(elim.vencedor);
+      const saem  = elim.vivos.filter(i=>!ficam.includes(i));
+      setElim(e=>({...e, saindo:saem}));
+      setTimeout(()=>{
+        setElim(e=>({...e, vivos:ficam, saindo:[], passo:e.passo+1}));
+      }, 1000);
+    }, 1900);
+    return ()=>clearTimeout(t1);
+  },[elim?.passo, elim?.vivos.length, !!elim]);
 
   if(!ok) return h('div',{className:'sorte sorte-login'},
     h('div',{className:'display',style:{fontSize:'26px',marginBottom:'6px'}},'Sorteio das cestas'),
@@ -5067,8 +5145,7 @@ function Sorteio(){
       h('div',{className:'sorte-rot'},emoji,' ',rot),
       h('div',{className:'sorte-tot'},nums.length,' números na disputa'),
       h('div',{className:'sorte-num mono'},
-        aoVivo ? String(numGiro).padStart(2,'0')
-        : res ? String(res.n).padStart(2,'0') : '––'),
+        res && !aoVivo ? String(res.n).padStart(2,'0') : '––'),
       res && !aoVivo && h('div',{className:'sorte-quem'},
         res.escondido ? 'Participante anônimo — procure os noivos'
                       : res.nome || 'Sem nome'),
@@ -5085,7 +5162,25 @@ function Sorteio(){
       h('div',{className:'sorte-sub'},'Cada R$ 50 na brincadeira valeu um número da sorte')),
     h('div',{className:'sorte-grid'},
       painel('noivo','Gravata','👔',sort?.gravata),
-      painel('noiva','Sapatinho','👠',sort?.sapatinho)));
+      painel('noiva','Sapatinho','👠',sort?.sapatinho)),
+
+    elim && h('div',{className:'elim'},
+      h('div',{className:'elim-feixe',key:'f'+elim.passo}),
+      h('div',{className:'elim-t'},
+        elim.lado==='noivo' ? '👔 Cesta da gravata' : '👠 Cesta do sapatinho'),
+      h('div',{className:'elim-sub'},
+        elim.vivos.length===1 ? 'Temos um campeão! 🎉'
+          : elim.vivos.length+' números na disputa'),
+      h('div',{className:'elim-grid'+(elim.vivos.length===1?' campeao':'')},
+        elim.vivos.map(i=>{
+          const v = elim.nums[i];
+          return h('div',{key:i,
+            className:'ficha'+(elim.saindo.includes(i)?' saindo':'')+
+              (elim.vivos.length===1?' venceu':'')},
+            h('div',{className:'ficha-n mono'},String(v.n).padStart(2,'0')),
+            h('div',{className:'ficha-q'},
+              v.escondido ? 'anônimo' : (v.nome||'').split(' ')[0]));
+        }))));
 }
 
 /* ═════════════ DJ — fila de pedidos (#dj) ═════════════ */
