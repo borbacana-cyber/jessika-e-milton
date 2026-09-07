@@ -5617,6 +5617,7 @@ function Bandeja(){
   const [encerrado,setEncerrado] = useState(false);
 
   const av = t =>{ setToast(t); setTimeout(()=>setToast(''),2200); };
+  const cv = useRef(null);
 
   useEffect(()=>{ signInAnonymously(auth).catch(e=>console.error(e)); },[]);
 
@@ -5625,6 +5626,16 @@ function Bandeja(){
       setEncerrado(sn.exists() && sn.data().fim === true));
     return u;
   },[]);
+
+  // QR do Pix na bandeja: o convidado aponta a câmera e paga na hora.
+  useEffect(()=>{
+    if(!cv.current) return;
+    const vlr = outro ? Math.round(parseFloat(outro.replace(',','.'))||0) : val;
+    if(vlr<=0) return;
+    QRCode.toCanvas(cv.current, pixBRCode(vlr,'FESTA'),
+      {width:180,margin:1,color:{dark:'#33261E',light:'#FFFFFF'}},
+      e=>e&&console.error(e));
+  },[val,outro,lado]);
 
   useEffect(()=>{
     if(!lado) return;
@@ -5643,6 +5654,7 @@ function Bandeja(){
   const L = FESTA.lados[lado];
   const total = lanc.reduce((s,l)=>s+(l.valor||0),0);
   const valor = outro ? Math.round(parseFloat(outro.replace(',','.'))||0) : val;
+  const codigo = valor>0 ? pixBRCode(valor,'FESTA') : '';
 
   // Anuncia o nome no telão
   const chamar = async () => {
@@ -5738,6 +5750,16 @@ function Bandeja(){
           h('div',{style:{fontWeight:500}},'Deu escondido'),
           h('div',{style:{fontSize:'11px',color:'var(--tinta-suave)',marginTop:'1px'}},
             'O telão mostra o valor, mas não o nome'))),
+
+      valor>0 && h('div',{style:{textAlign:'center'}},
+        h('div',{className:'qr-box'},h('canvas',{ref:cv})),
+        h('button',{className:'btn btn-g',style:{marginBottom:'12px'},
+          onClick:()=>{
+            navigator.clipboard.writeText(codigo)
+              .then(()=>av('Código copiado'))
+              .catch(()=>av('Copie manualmente'));
+          }},
+          h(Ic,{d:I.copy,s:16}),'Copiar código Pix de '+brl(valor))),
 
       h('button',{className:'bd-lancar',disabled:valor<=0||busy,onClick:lancar},
         busy ? h('div',{className:'spin'})
