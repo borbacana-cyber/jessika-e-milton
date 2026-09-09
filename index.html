@@ -3631,7 +3631,8 @@ window.QRCode = {
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  getFirestore, collection, doc, addDoc, setDoc, getDoc, getDocs, deleteDoc,
+  getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
+  collection, doc, addDoc, setDoc, getDoc, getDocs, deleteDoc,
   onSnapshot, query, orderBy, serverTimestamp, updateDoc, where
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -3782,7 +3783,17 @@ const ESPECIAIS = [
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
+// Cache offline: se a internet do salão cair, lançamentos e recados
+// entram numa fila local e sobem sozinhos quando a conexão volta.
+let db;
+try{
+  db = initializeFirestore(app,{
+    localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()})
+  });
+}catch(e){
+  console.warn('cache offline indisponível, seguindo sem:',e);
+  db = getFirestore(app);
+}
 
 // Atalhos da tela de início perdem o "#" (iOS/Android). Aceitamos
 // ?tela=noivos, ?tela=dj etc. e convertemos em #hash AQUI, antes de
@@ -5366,7 +5377,8 @@ function Mural({retro}){
             autoPlay:true,muted:true,loop:true,playsInline:true,
             poster:m.thumb})
         : h('div',{className:'mural-media mural-foto',
-            style:{backgroundImage:'url('+m.url+')'}}),
+            style:{backgroundImage:
+              'url('+m.url.replace('/upload/','/upload/w_1280,q_auto:eco/')+')'}}),
       h('div',{className:'mural-veu'}),
       h('div',{className:'mural-rodape'},
         h('div',{className:'mural-nome'},
