@@ -4403,7 +4403,8 @@ function Casa({eu,setAba,dados,midias,festaOn}){
           PALETA.map((c,i)=>h('div',{key:c.h,
             className:'paleta-c',
             style:{background:c.h}},
-            h('div',{className:'paleta-n'},c.n))))
+            h('div',{className:'paleta-n'},c.n)))),
+        h(ComoMontarLook)
       ),
 
       h('div',{style:{textAlign:'center',padding:'12px 0 34px',color:'var(--linha)'}},
@@ -4411,6 +4412,23 @@ function Casa({eu,setAba,dados,midias,festaOn}){
     )
   );
 }
+
+const ComoMontarLook = () => h('details',{className:'look'},
+  h('summary',{className:'look-s'},
+    h(Ic,{d:I.info,s:15}),'Como montar o look — toque para ver'),
+  h('div',{className:'look-b'},
+    h('p',null,'A proposta é traje ',h('b',null,'social / esporte fino em tons terrosos'),
+      ' — terracota, tijolo, argila e cobre. Essas cores devem ser a ',
+      h('b',null,'parte principal do visual'),', não só um detalhe ou acessório.'),
+    h('p',null,h('b',null,'Mulheres:'),' vestidos, macacões ou conjuntos dentro dessa paleta.'),
+    h('p',null,h('b',null,'Homens: '),'pelo menos uma peça principal (blazer, terno, ',
+      'camisa ou calça) em tom terroso. As demais podem ser neutras e claras, como bege, ',
+      'areia ou off-white. Ou seja: terno preto, azul ou cinza com só uma gravata ',
+      'terrosa não corresponde à proposta.'),
+    h('p',null,'Não precisa ser exatamente as cores daqui nem um visual inteiro ',
+      'da mesma cor — o importante é um traje ',
+      h('b',null,'predominantemente terroso e harmonioso'),'.'),
+    h('p',null,'Na dúvida, fala com a gente! 💛')));
 
 const Atalho = ({ic,t,d,go}) => h('button',{className:'card',onClick:go,
   style:{padding:'17px 15px',textAlign:'left',display:'flex',flexDirection:'column',gap:'10px'}},
@@ -6462,22 +6480,7 @@ function Local({admin,setAdmin,pedidos,dados,eu,aviso}){
           margin:'14px 0 0'}},
           'Evite branco, off-white e preto total — ficam para os noivos e para o contraste.'),
 
-        h('details',{className:'look'},
-          h('summary',{className:'look-s'},
-            h(Ic,{d:I.info,s:15}),'Como montar o look — toque para ver'),
-          h('div',{className:'look-b'},
-            h('p',null,'A proposta é traje ',h('b',null,'social / esporte fino em tons terrosos'),
-              ' — terracota, tijolo, argila e cobre. Essas cores devem ser a ',
-              h('b',null,'parte principal do visual'),', não só um detalhe ou acessório.'),
-            h('p',null,h('b',null,'Mulheres:'),' vestidos, macacões ou conjuntos dentro dessa paleta.'),
-            h('p',null,h('b',null,'Homens: '),'pelo menos uma peça principal (blazer, terno, ',
-              'camisa ou calça) em tom terroso. As demais podem ser neutras e claras, como bege, ',
-              'areia ou off-white. Ou seja: terno preto, azul ou cinza com só uma gravata ',
-              'terrosa não corresponde à proposta.'),
-            h('p',null,'Não precisa ser exatamente as cores daqui nem um visual inteiro ',
-              'da mesma cor — o importante é um traje ',
-              h('b',null,'predominantemente terroso e harmonioso'),'.'),
-            h('p',null,'Na dúvida, fala com a gente! 💛')))),
+        h(ComoMontarLook)),
 
       // painel dos noivos (só aparece se logado por e-mail)
       admin && h('div',{style:{textAlign:'center',padding:'16px 0 44px'}},
