@@ -370,6 +370,18 @@ img{display:block;max-width:100%}
   max-width:340px;line-height:1.6}
 
 /* ═══════════ SORTEIO + RIFA ═══════════ */
+.look{margin-top:16px;border:1px solid var(--linha);border-radius:13px;
+  background:var(--papel);overflow:hidden}
+.look-s{display:flex;align-items:center;gap:8px;padding:13px 14px;
+  font-size:13.5px;font-weight:600;color:var(--tinta);cursor:pointer;
+  list-style:none}
+.look-s::-webkit-details-marker{display:none}
+.look-s svg{color:var(--oliva);flex-shrink:0}
+.look[open] .look-s{border-bottom:1px solid var(--linha)}
+.look-b{padding:13px 15px 6px;background:#fff}
+.look-b p{font-size:13px;line-height:1.65;color:var(--tinta-suave);margin:0 0 11px}
+.look-b b{color:var(--tinta)}
+
 .rifa{margin-top:22px;padding:18px 16px;border:1px solid var(--linha);
   border-radius:var(--r);background:#fff;box-shadow:var(--sombra)}
 .rifa-meus{display:flex;flex-direction:column;gap:7px;margin-bottom:4px}
@@ -6448,7 +6460,24 @@ function Local({admin,setAdmin,pedidos,dados,eu,aviso}){
             h('div',{className:'paleta-h'},c.h)))),
         h('p',{style:{fontSize:'11.5px',color:'var(--tinta-suave)',lineHeight:1.6,
           margin:'14px 0 0'}},
-          'Evite branco, off-white e preto total — ficam para os noivos e para o contraste.')),
+          'Evite branco, off-white e preto total — ficam para os noivos e para o contraste.'),
+
+        h('details',{className:'look'},
+          h('summary',{className:'look-s'},
+            h(Ic,{d:I.info,s:15}),'Como montar o look — toque para ver'),
+          h('div',{className:'look-b'},
+            h('p',null,'A proposta é traje ',h('b',null,'social / esporte fino em tons terrosos'),
+              ' — terracota, tijolo, argila e cobre. Essas cores devem ser a ',
+              h('b',null,'parte principal do visual'),', não só um detalhe ou acessório.'),
+            h('p',null,h('b',null,'Mulheres:'),' vestidos, macacões ou conjuntos dentro dessa paleta.'),
+            h('p',null,h('b',null,'Homens: '),'pelo menos uma peça principal (blazer, terno, ',
+              'camisa ou calça) em tom terroso. As demais podem ser neutras e claras, como bege, ',
+              'areia ou off-white. Ou seja: terno preto, azul ou cinza com só uma gravata ',
+              'terrosa não corresponde à proposta.'),
+            h('p',null,'Não precisa ser exatamente as cores daqui nem um visual inteiro ',
+              'da mesma cor — o importante é um traje ',
+              h('b',null,'predominantemente terroso e harmonioso'),'.'),
+            h('p',null,'Na dúvida, fala com a gente! 💛')))),
 
       // painel dos noivos (só aparece se logado por e-mail)
       admin && h('div',{style:{textAlign:'center',padding:'16px 0 44px'}},
