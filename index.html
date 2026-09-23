@@ -5356,6 +5356,21 @@ function Mural({retro}){
             [emb[i],emb[j]]=[emb[j],emb[i]];
           }
           emb.forEach(m=>vistos.current.add(m.id));
+          // retrô: intercala os vídeos a cada 10 fotos, para voltarem
+          // com frequência na rotação sem precisar reenviar o arquivo
+          if(retro){
+            const vids  = emb.filter(m=>m.tipo==='video');
+            const fotos = emb.filter(m=>m.tipo!=='video');
+            if(vids.length && fotos.length){
+              const fila=[]; let vi=0;
+              fotos.forEach((f,i)=>{
+                fila.push(f);
+                if((i+1)%10===0){ fila.push(vids[vi%vids.length]); vi++; }
+              });
+              if(vi===0) fila.push(vids[0]);
+              return fila;
+            }
+          }
           return emb;
         }
         // envios novos entram logo depois do slide atual
