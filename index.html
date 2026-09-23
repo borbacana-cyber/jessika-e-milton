@@ -5368,14 +5368,17 @@ function Mural({retro}){
     return ()=>u();
   },[]);
 
-  // troca de slide
+  const avancar = () => setIdx(i => (i+1) % Math.max(lista.length,1));
+
+  // troca de slide: fotos ficam 8s; vídeos tocam ATÉ O FIM (onEnded avança),
+  // com um teto de segurança de 5 min caso o vídeo trave.
   useEffect(()=>{
     if(lista.length===0) return;
-    const t = setInterval(()=>{
-      setIdx(i=>(i+1) % lista.length);
-    }, 8000);
-    return ()=>clearInterval(t);
-  },[lista.length]);
+    const m = lista[idx % lista.length];
+    const ms = (m && m.tipo==='video') ? 5*60*1000 : 8000;
+    const t = setTimeout(avancar, ms);
+    return ()=>clearTimeout(t);
+  },[idx, lista.length]);
 
   // QR do app (para mandar mais fotos)
   useEffect(()=>{
@@ -5404,8 +5407,9 @@ function Mural({retro}){
     m && h('div',{className:'mural-slide',key:m.id+idx},
       m.tipo==='video'
         ? h('video',{className:'mural-media',src:m.url,
-            autoPlay:true,muted:true,loop:true,playsInline:true,
-            poster:m.thumb})
+            autoPlay:true,muted:true,playsInline:true,
+            poster:m.thumb,
+            onEnded:avancar, onError:avancar})
         : h('div',{className:'mural-media mural-foto',
             style:{backgroundImage:
               'url('+m.url.replace('/upload/','/upload/w_1280,q_auto:eco/')+')'}}),
